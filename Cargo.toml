@@ -1,0 +1,13 @@
+[package]
+name = "voxel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+winit = "0.28"
+glam = "0.24"
+wgpu = "0.17"
+noise = "0.8"
+rand = "0.8"
+pollster = "0.3"
+bytemuck = { version = "1.13", features = ["derive"] }
