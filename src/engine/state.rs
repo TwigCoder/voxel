@@ -177,7 +177,6 @@ impl State {
         for (pos, chunk) in &self.chunks {
             let (min, max) = chunk.get_bounds();
             if frustum.is_box_visible(min, max) {
-                println!("Rendering chunk at {:?}", pos);
                 all_vertices.extend(chunk.generate_mesh());
             }
         }

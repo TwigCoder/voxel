@@ -79,12 +79,10 @@ impl Chunk {
                         continue;
                     }
                     
-                    println!("Block at ({}, {}, {}): {:?}", x, y, z, block);
                     let color = block.get_face_color(BlockFace::Top);
                     
                     
                     if y == CHUNK_SIZE - 1 || self.get_block(x, y + 1, z).is_transparent() {
-                        println!("Adding top face at ({}, {}, {})", x, y, z);
                         vertices.extend_from_slice(&[
                             
                             Vertex {
@@ -120,28 +118,28 @@ impl Chunk {
                         vertices.extend_from_slice(&[
                             
                             Vertex {
-                                position: [x as f32, y as f32, z as f32],
+                                position: [x as f32 + self.position.x, y as f32 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::Bottom),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32, z as f32],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::Bottom),
                             },
                             Vertex {
-                                position: [x as f32, y as f32, z as f32 + 1.0],
+                                position: [x as f32 + self.position.x, y as f32 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::Bottom),
                             },
                             
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32, z as f32],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::Bottom),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32, z as f32 + 1.0],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::Bottom),
                             },
                             Vertex {
-                                position: [x as f32, y as f32, z as f32 + 1.0],
+                                position: [x as f32 + self.position.x, y as f32 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::Bottom),
                             },
                         ]);
@@ -152,28 +150,28 @@ impl Chunk {
                         vertices.extend_from_slice(&[
                             
                             Vertex {
-                                position: [x as f32, y as f32, z as f32],
+                                position: [x as f32 + self.position.x, y as f32 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::North),
                             },
                             Vertex {
-                                position: [x as f32, y as f32 + 1.0, z as f32],
+                                position: [x as f32 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::North),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32 + 1.0, z as f32],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::North),
                             },
                             
                             Vertex {
-                                position: [x as f32, y as f32, z as f32],
+                                position: [x as f32 + self.position.x, y as f32 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::North),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32 + 1.0, z as f32],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::North),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32, z as f32],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::North),
                             },
                         ]);
@@ -184,28 +182,28 @@ impl Chunk {
                         vertices.extend_from_slice(&[
                             
                             Vertex {
-                                position: [x as f32, y as f32, z as f32 + 1.0],
+                                position: [x as f32 + self.position.x, y as f32 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::South),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32 + 1.0, z as f32 + 1.0],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::South),
                             },
                             Vertex {
-                                position: [x as f32, y as f32 + 1.0, z as f32 + 1.0],
+                                position: [x as f32 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::South),
                             },
                             
                             Vertex {
-                                position: [x as f32, y as f32, z as f32 + 1.0],
+                                position: [x as f32 + self.position.x, y as f32 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::South),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32, z as f32 + 1.0],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::South),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32 + 1.0, z as f32 + 1.0],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::South),
                             },
                         ]);
@@ -216,28 +214,28 @@ impl Chunk {
                         vertices.extend_from_slice(&[
                             
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32, z as f32],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::East),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32 + 1.0, z as f32],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::East),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32, z as f32 + 1.0],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::East),
                             },
                             
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32 + 1.0, z as f32],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::East),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32 + 1.0, z as f32 + 1.0],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::East),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32, z as f32 + 1.0],
+                                position: [x as f32 + 1. + self.position.x, y as f32 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::East),
                             },
                         ]);
@@ -248,28 +246,28 @@ impl Chunk {
                         vertices.extend_from_slice(&[
                             
                             Vertex {
-                                position: [x as f32, y as f32, z as f32],
+                                position: [x as f32 + self.position.x, y as f32 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::West),
                             },
                             Vertex {
-                                position: [x as f32, y as f32, z as f32 + 1.0],
+                                position: [x as f32 + self.position.x, y as f32 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::West),
                             },
                             Vertex {
-                                position: [x as f32, y as f32 + 1.0, z as f32 + 1.0],
+                                position: [x as f32 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::West),
                             },
                             
                             Vertex {
-                                position: [x as f32, y as f32, z as f32],
+                                position: [x as f32 + self.position.x, y as f32 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::West),
                             },
                             Vertex {
-                                position: [x as f32, y as f32 + 1.0, z as f32 + 1.0],
+                                position: [x as f32 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::West),
                             },
                             Vertex {
-                                position: [x as f32, y as f32 + 1.0, z as f32],
+                                position: [x as f32 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::West),
                             },
                         ]);
