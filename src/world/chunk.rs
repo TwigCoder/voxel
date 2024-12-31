@@ -1,9 +1,40 @@
 use super::block::{BlockType, BlockFace};
 use crate::engine::renderer::Vertex;
 use glam::Vec3;
+use noise::{NoiseFn, Perlin};
 
 pub const CHUNK_SIZE: usize = 16;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ChunkPos {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32
+}
+
+impl ChunkPos {
+    pub fn new(x: i32, y: i32, z: i32) -> Self {
+        Self{x, y, z}
+    }
+    
+    pub fn from_world_pos(pos: Vec3) -> Self {
+        Self {
+            x: (pos.x / CHUNK_SIZE as f32).floor() as i32,
+            y: (pos.y / CHUNK_SIZE as f32).floor() as i32,
+            z: (pos.z / CHUNK_SIZE as f32).floor() as i32,
+        }
+    }
+    
+    pub fn to_world_pos(&self) -> Vec3 {
+        Vec3::new(
+            self.x as f32 * CHUNK_SIZE as f32,
+            self.y as f32 * CHUNK_SIZE as f32,
+            self.z as f32 * CHUNK_SIZE as f32,
+        )
+    }
+}
+
+#[derive(Clone)]
 pub struct Chunk {
     pub position: Vec3,
     blocks: [[[BlockType; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
@@ -47,36 +78,38 @@ impl Chunk {
                     if block == BlockType::Air {
                         continue;
                     }
-
+                    
+                    println!("Block at ({}, {}, {}): {:?}", x, y, z, block);
                     let color = block.get_face_color(BlockFace::Top);
                     
                     
                     if y == CHUNK_SIZE - 1 || self.get_block(x, y + 1, z).is_transparent() {
+                        println!("Adding top face at ({}, {}, {})", x, y, z);
                         vertices.extend_from_slice(&[
                             
                             Vertex {
-                                position: [x as f32, y as f32 + 1.0, z as f32],
+                                position: [x as f32 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::Top),
                             },
                             Vertex {
-                                position: [x as f32, y as f32 + 1.0, z as f32 + 1.0],
+                                position: [x as f32 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::Top),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32 + 1.0, z as f32 + 1.0],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::Top),
                             },
                             
                             Vertex {
-                                position: [x as f32, y as f32 + 1.0, z as f32],
+                                position: [x as f32 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::Top),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32 + 1.0, z as f32 + 1.0],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + 1.0 + self.position.z],
                                 color: block.get_face_color(BlockFace::Top),
                             },
                             Vertex {
-                                position: [x as f32 + 1.0, y as f32 + 1.0, z as f32],
+                                position: [x as f32 + 1.0 + self.position.x, y as f32 + 1.0 + self.position.y, z as f32 + self.position.z],
                                 color: block.get_face_color(BlockFace::Top),
                             },
                         ]);
@@ -246,5 +279,46 @@ impl Chunk {
         }
 
         vertices
+    }
+    
+    pub fn generate_terrain(&mut self, world_pos: Vec3) {
+        let perlin = Perlin::new(1); // TODO: MAKE RANDOMIZED LATER
+        
+        for x in 0..CHUNK_SIZE {
+            for z in 0..CHUNK_SIZE {
+                let wx = world_pos.x + x as f32;
+                let wz = world_pos.z + z as f32;
+                
+                let height = (perlin.get([
+                    wx as f64 * 0.05,
+                    wz as f64 * 0.05,
+                ]) * 8.0 + 8.0) as usize;
+                
+                for y in 0..CHUNK_SIZE {
+                    let wy = world_pos.y + y as f32;
+                    let abs_y = y as i32 + (self.position.y as i32 * CHUNK_SIZE as i32);
+                    
+                    if abs_y < height as i32 {
+                        let block_type = if abs_y < -4 {
+                            BlockType::Stone
+                        } else if abs_y < -1 {
+                            BlockType::Dirt
+                        } else {
+                            BlockType::Grass
+                        };
+                        
+                        self.set_block(x, y, z, block_type);
+                    }
+                }
+            }
+        }
+    }
+    
+    pub fn get_chunk_pos(world_pos: Vec3) -> Vec3 {
+        Vec3::new(
+            (world_pos.x / CHUNK_SIZE as f32).floor(),
+            (world_pos.y / CHUNK_SIZE as f32).floor(),
+            (world_pos.z / CHUNK_SIZE as f32).floor()
+        )
     }
 }

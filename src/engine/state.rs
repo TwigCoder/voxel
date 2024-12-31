@@ -3,12 +3,19 @@ use super::{
     renderer::Renderer,
 };
 use crate::world::{
-    block::BlockType,
-    chunk::{Chunk, CHUNK_SIZE},
+    block::{BlockPos, BlockType},
+    chunk::{Chunk, ChunkPos, CHUNK_SIZE},
 };
 use crate::utils::frustum::Frustum;
 use glam::Vec3;
 use winit::{event::WindowEvent, window::Window};
+use std::collections::{HashMap, HashSet, VecDeque};
+
+#[derive(Debug)]
+struct ChunkLoadRequest {
+    pos: ChunkPos,
+    priority: f32,
+}
 
 pub struct State {
     surface: wgpu::Surface,
@@ -19,12 +26,16 @@ pub struct State {
     pub camera: Camera,
     camera_controller: CameraController,
     renderer: Renderer,
-    chunks: Vec<Chunk>
+    chunks: HashMap<ChunkPos, Chunk>,
+    chunk_load_queue: VecDeque<ChunkLoadRequest>,
+    render_distance: i32,
+    chunks_per_frame: usize,
 }
 
 impl State {
     pub async fn new(window: &Window) -> Self {
         let size = window.inner_size();
+            
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             dx12_shader_compiler: Default::default(),
@@ -108,10 +119,14 @@ impl State {
         for chunk in &chunks {
             initial_vertices.extend(chunk.generate_mesh());
         }
-        
         renderer.update_vertices(&device, &initial_vertices);
+        
+        let render_distance = 8;
+        let chunks = HashMap::new();
+        let chunk_load_queue = VecDeque::new();
+        let chunks_per_frame = 2;
 
-        Self {
+        let mut state = Self {
             surface,
             device,
             queue,
@@ -121,7 +136,13 @@ impl State {
             camera_controller,
             renderer,
             chunks,
-        }
+            chunk_load_queue,
+            render_distance,
+            chunks_per_frame,
+        };
+        
+        state.update_chunks();
+        state
     }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -141,6 +162,7 @@ impl State {
 
     pub fn update(&mut self) {
         self.camera_controller.update_camera(&mut self.camera);
+        self.update_chunks();
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -152,13 +174,15 @@ impl State {
         let frustum = Frustum::from_matrix(self.camera.build_view_projection_matrix());
         
         let mut all_vertices = Vec::new();
-        for chunk in &self.chunks {
+        for (pos, chunk) in &self.chunks {
             let (min, max) = chunk.get_bounds();
             if frustum.is_box_visible(min, max) {
+                println!("Rendering chunk at {:?}", pos);
                 all_vertices.extend(chunk.generate_mesh());
             }
         }
         
+        self.renderer.update_vertices(&self.device, &all_vertices);
         self.renderer
             .render(&view, &self.device, &self.queue, &self.camera)?;
         output.present();
@@ -169,4 +193,68 @@ impl State {
     pub fn update_vertices(&mut self, vertices: &[super::renderer::Vertex]) {
         self.renderer.update_vertices(&self.device, vertices);
     }
+    
+    pub fn update_chunks(&mut self) {
+        let camera_chunk_pos = ChunkPos::from_world_pos(self.camera.position);
+        let mut chunks_to_keep = HashSet::new();
+        let mut new_load_requests: Vec<ChunkLoadRequest> = Vec::new();
+        
+        for y in -self.render_distance/2..=self.render_distance/2 {
+            for x in -self.render_distance..=self.render_distance {
+                for z in -self.render_distance..=self.render_distance {
+                    let chunk_pos = ChunkPos::new(
+                        camera_chunk_pos.x + x,
+                        camera_chunk_pos.y + y,
+                        camera_chunk_pos.z + z,
+                    );
+                    
+                    let distance = ((x * x + y * y + z * z) as f32).sqrt();
+                    
+                    if distance <= self.render_distance as f32 {
+                        chunks_to_keep.insert(chunk_pos);
+                        
+                        if !self.chunks.contains_key(&chunk_pos) {
+                            new_load_requests.push(ChunkLoadRequest {
+                                pos: chunk_pos,
+                                priority: distance,
+                            })
+                        }
+                    }
+                }
+            }
+        }
+        
+        new_load_requests.sort_by(|a, b|
+            a.priority.partial_cmp(&b.priority).unwrap()
+        );
+        
+        self.chunk_load_queue.extend(new_load_requests);
+        
+        for _ in 0..self.chunks_per_frame {
+            if let Some(request) = self.chunk_load_queue.pop_front() {
+                if !self.chunks.contains_key(&request.pos) {
+                    
+                    let mut chunk = Chunk::new(request.pos.to_world_pos());
+                    chunk.generate_terrain(request.pos.to_world_pos());
+                    
+                    if request.pos.y == -1 {
+                        for x in 0..CHUNK_SIZE {
+                            for z in 0..CHUNK_SIZE {
+                                chunk.set_block(x, CHUNK_SIZE-1, z, BlockType::Grass);
+                                
+                                if rand::random::<f32>() < 0.1 {
+                                    chunk.set_block(x, CHUNK_SIZE, z, BlockType::Grass);
+                                }
+                            }
+                        }
+                    }
+                    
+                    self.chunks.insert(request.pos, chunk);
+                }
+            }
+        }
+        
+        self.chunks.retain(|pos, _|chunks_to_keep.contains(pos)); 
+    }   
 }
+
