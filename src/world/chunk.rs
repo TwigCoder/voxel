@@ -308,8 +308,7 @@ impl Chunk {
                         };
                         
                         self.set_block(x, y, z, block_type);
-                    }
-                    if abs_y <= water_level {
+                    } else if abs_y <= water_level {
                         self.set_block(x, y, z, BlockType::Water);
                     }
                 }
