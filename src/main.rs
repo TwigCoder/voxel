@@ -4,7 +4,7 @@ mod world;
 
 use engine::state::State;
 use winit::{
-    event::{Event, WindowEvent},
+    event::*,
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
@@ -12,11 +12,11 @@ use winit::{
 fn main() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
-        .with_title("Voxel Engine")
+        .with_title("Rust Voxel Engine")
         .build(&event_loop)
         .unwrap();
 
-    let mut state = pollster::block_on(State::new(&window));
+    let mut state = pollster::block_on(async {State::new(&window).await});
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::WindowEvent {

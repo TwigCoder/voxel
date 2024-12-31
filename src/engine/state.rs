@@ -6,6 +6,7 @@ use crate::world::{
     block::BlockType,
     chunk::{Chunk, CHUNK_SIZE},
 };
+use crate::utils::frustum::Frustum;
 use glam::Vec3;
 use winit::{event::WindowEvent, window::Window};
 
@@ -18,6 +19,7 @@ pub struct State {
     pub camera: Camera,
     camera_controller: CameraController,
     renderer: Renderer,
+    chunks: Vec<Chunk>
 }
 
 impl State {
@@ -76,87 +78,38 @@ impl State {
         let camera_controller = CameraController::new(0.5);
         let mut renderer = Renderer::new(&device, &config, &camera);
 
-        let mut chunk = Chunk::new();
-        for x in 0..CHUNK_SIZE {
-            for z in 0..CHUNK_SIZE {
-                chunk.set_block(x, 0, z, BlockType::Grass);
+        let mut chunks = Vec::new();
+        
+        for x in -1..=1 {
+            for y in -1..=1 {
+                for z in -1..=1 {
+                    let position = Vec3::new(
+                        x as f32 * CHUNK_SIZE as f32,
+                        y as f32 * CHUNK_SIZE as f32,
+                        z as f32 * CHUNK_SIZE as f32
+                    );
+                    let mut chunk = Chunk::new(position);
+                
+                if y == -1 {
+                    for cx in 0..CHUNK_SIZE {
+                        for cz in 0..CHUNK_SIZE {
+                            chunk.set_block(cx, CHUNK_SIZE-1, cz, BlockType::Grass);
+                        }
+                    }
+                }
+                chunks.push(chunk);
+            }
             }
         }
-
-        chunk.set_block(5, 1, 5, BlockType::Wood);
-        chunk.set_block(5, 2, 5, BlockType::Wood);
-        chunk.set_block(5, 3, 5, BlockType::Wood);
-
-        chunk.set_block(4, 4, 4, BlockType::Leaves);
-        chunk.set_block(4, 4, 5, BlockType::Leaves);
-        chunk.set_block(4, 4, 6, BlockType::Leaves);
-        chunk.set_block(5, 4, 4, BlockType::Leaves);
-        chunk.set_block(5, 4, 5, BlockType::Leaves);
-        chunk.set_block(5, 4, 6, BlockType::Leaves);
-        chunk.set_block(6, 4, 4, BlockType::Leaves);
-        chunk.set_block(6, 4, 5, BlockType::Leaves);
-        chunk.set_block(6, 4, 6, BlockType::Leaves);
-
-        chunk.set_block(3, 1, 3, BlockType::Leaves);
-        chunk.set_block(3, 1, 4, BlockType::Leaves);
-        chunk.set_block(4, 1, 3, BlockType::Leaves);
-        chunk.set_block(6, 1, 6, BlockType::Leaves);
-        chunk.set_block(6, 1, 7, BlockType::Leaves);
-        chunk.set_block(7, 1, 6, BlockType::Leaves);
-
-        chunk.set_block(5, 1, 4, BlockType::Dirt);
-        chunk.set_block(5, 1, 3, BlockType::Dirt);
-        chunk.set_block(5, 1, 2, BlockType::Dirt);
-
-        chunk.set_block(4, 1, 2, BlockType::Stone);
-        chunk.set_block(6, 1, 2, BlockType::Stone);
-        chunk.set_block(5, 1, 1, BlockType::Stone);
-
-        chunk.set_block(3, 1, 2, BlockType::Sand);
-        chunk.set_block(7, 1, 3, BlockType::Sand);
-
-        chunk.set_block(2, 1, 5, BlockType::Snow);
-        chunk.set_block(8, 1, 5, BlockType::Snow);
-        chunk.set_block(5, 1, 8, BlockType::Snow);
-        chunk.set_block(5, 1, 7, BlockType::Snow);
-
-        chunk.set_block(0, 1, 0, BlockType::Stone);
-        chunk.set_block(0, 2, 0, BlockType::Stone);
-        chunk.set_block(1, 1, 0, BlockType::Stone);
-        chunk.set_block(1, 2, 0, BlockType::Stone);
-        chunk.set_block(0, 1, 1, BlockType::Stone);
-        chunk.set_block(0, 2, 1, BlockType::Stone);
-        chunk.set_block(1, 3, 0, BlockType::Stone);
-
-        chunk.set_block(12, 1, 12, BlockType::Glass);
-        chunk.set_block(13, 1, 12, BlockType::Glass);
-        chunk.set_block(14, 1, 12, BlockType::Glass);
-        chunk.set_block(12, 1, 13, BlockType::Glass);
-        chunk.set_block(12, 1, 14, BlockType::Glass);
-        chunk.set_block(14, 1, 13, BlockType::Glass);
-        chunk.set_block(14, 1, 14, BlockType::Glass);
-        chunk.set_block(13, 1, 14, BlockType::Glass);
-
-        chunk.set_block(13, 1, 13, BlockType::Water);
-        chunk.set_block(13, 2, 13, BlockType::Water);
-        chunk.set_block(12, 1, 15, BlockType::Ice);
-        chunk.set_block(13, 1, 15, BlockType::Ice);
-        chunk.set_block(14, 1, 15, BlockType::Ice);
-
-        chunk.set_block(10, 1, 10, BlockType::Stone);
-        chunk.set_block(10, 2, 10, BlockType::CoalOre);
-        chunk.set_block(11, 1, 10, BlockType::IronOre);
-        chunk.set_block(10, 1, 11, BlockType::GoldOre);
-        chunk.set_block(11, 1, 11, BlockType::DiamondOre);
-
-        chunk.set_block(8, 1, 12, BlockType::Obsidian);
-        chunk.set_block(9, 1, 12, BlockType::Obsidian);
-        chunk.set_block(8, 1, 13, BlockType::Obsidian);
-        chunk.set_block(8, 2, 12, BlockType::Lava);
-        chunk.set_block(8, 2, 13, BlockType::Lava);
-
-        let vertices = chunk.generate_mesh();
-        renderer.update_vertices(&device, &vertices);
+        
+        let mut renderer = Renderer::new(&device, &config, &camera);
+        
+        let mut initial_vertices = Vec::new();
+        for chunk in &chunks {
+            initial_vertices.extend(chunk.generate_mesh());
+        }
+        
+        renderer.update_vertices(&device, &initial_vertices);
 
         Self {
             surface,
@@ -167,6 +120,7 @@ impl State {
             camera,
             camera_controller,
             renderer,
+            chunks,
         }
     }
 
@@ -195,6 +149,16 @@ impl State {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
+        let frustum = Frustum::from_matrix(self.camera.build_view_projection_matrix());
+        
+        let mut all_vertices = Vec::new();
+        for chunk in &self.chunks {
+            let (min, max) = chunk.get_bounds();
+            if frustum.is_box_visible(min, max) {
+                all_vertices.extend(chunk.generate_mesh());
+            }
+        }
+        
         self.renderer
             .render(&view, &self.device, &self.queue, &self.camera)?;
         output.present();

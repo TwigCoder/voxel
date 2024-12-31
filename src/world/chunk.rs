@@ -1,15 +1,18 @@
 use super::block::{BlockType, BlockFace};
 use crate::engine::renderer::Vertex;
+use glam::Vec3;
 
 pub const CHUNK_SIZE: usize = 16;
 
 pub struct Chunk {
+    pub position: Vec3,
     blocks: [[[BlockType; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
 }
 
 impl Chunk {
-    pub fn new() -> Self {
+    pub fn new(position: Vec3) -> Self {
         Self {
+            position,
             blocks: [[[BlockType::Air; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
         }
     }
@@ -26,6 +29,12 @@ impl Chunk {
         } else {
             BlockType::Air
         }
+    }
+    
+    pub fn get_bounds(&self) -> (Vec3, Vec3) {
+        let min = self.position;
+        let max = self.position + Vec3::new(CHUNK_SIZE as f32, CHUNK_SIZE as f32, CHUNK_SIZE as f32);
+        (min, max)
     }
 
     pub fn generate_mesh(&self) -> Vec<Vertex> {
