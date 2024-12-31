@@ -30,6 +30,7 @@ pub struct State {
     chunk_load_queue: VecDeque<ChunkLoadRequest>,
     render_distance: i32,
     chunks_per_frame: usize,
+    last_chunk_pos: Option<ChunkPos>,
 }
 
 impl State {
@@ -121,10 +122,11 @@ impl State {
         }
         renderer.update_vertices(&device, &initial_vertices);
         
-        let render_distance = 8;
+        let render_distance = 16;
         let chunks = HashMap::new();
         let chunk_load_queue = VecDeque::new();
-        let chunks_per_frame = 2;
+        let chunks_per_frame = 64;
+        let last_chunk_pos = None;
 
         let mut state = Self {
             surface,
@@ -139,6 +141,7 @@ impl State {
             chunk_load_queue,
             render_distance,
             chunks_per_frame,
+            last_chunk_pos,
         };
         
         state.update_chunks();
@@ -162,7 +165,12 @@ impl State {
 
     pub fn update(&mut self) {
         self.camera_controller.update_camera(&mut self.camera);
-        self.update_chunks();
+        
+        let current_chunk_pos = ChunkPos::from_world_pos(self.camera.position);
+        if self.last_chunk_pos.map_or(true, |pos| pos != current_chunk_pos) {
+            self.last_chunk_pos = Some(current_chunk_pos);
+            self.update_chunks();
+        }
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -198,7 +206,7 @@ impl State {
         let mut chunks_to_keep = HashSet::new();
         let mut new_load_requests: Vec<ChunkLoadRequest> = Vec::new();
         
-        for y in -self.render_distance/2..=self.render_distance/2 {
+        for y in -self.render_distance/4..=self.render_distance/4 {
             for x in -self.render_distance..=self.render_distance {
                 for z in -self.render_distance..=self.render_distance {
                     let chunk_pos = ChunkPos::new(
@@ -207,7 +215,7 @@ impl State {
                         camera_chunk_pos.z + z,
                     );
                     
-                    let distance = ((x * x + y * y + z * z) as f32).sqrt();
+                    let distance = ((x * x + y * y * 4 + z * z) as f32).sqrt();
                     
                     if distance <= self.render_distance as f32 {
                         chunks_to_keep.insert(chunk_pos);
@@ -226,7 +234,13 @@ impl State {
         new_load_requests.sort_by(|a, b|
             a.priority.partial_cmp(&b.priority).unwrap()
         );
+        new_load_requests.sort_by(|a, b| {
+            let a_dist = (a.pos.x - camera_chunk_pos.x).pow(2) + (a.pos.z - camera_chunk_pos.z).pow(2);
+            let b_dist = (b.pos.x - camera_chunk_pos.x).pow(2) + (b.pos.z - camera_chunk_pos.z).pow(2);
+            a_dist.cmp(&b_dist)
+        });
         
+        self.chunk_load_queue.clear();
         self.chunk_load_queue.extend(new_load_requests);
         
         for _ in 0..self.chunks_per_frame {
@@ -235,18 +249,6 @@ impl State {
                     
                     let mut chunk = Chunk::new(request.pos.to_world_pos());
                     chunk.generate_terrain(request.pos.to_world_pos());
-                    
-                    if request.pos.y == -1 {
-                        for x in 0..CHUNK_SIZE {
-                            for z in 0..CHUNK_SIZE {
-                                chunk.set_block(x, CHUNK_SIZE-1, z, BlockType::Grass);
-                                
-                                if rand::random::<f32>() < 0.1 {
-                                    chunk.set_block(x, CHUNK_SIZE, z, BlockType::Grass);
-                                }
-                            }
-                        }
-                    }
                     
                     self.chunks.insert(request.pos, chunk);
                 }

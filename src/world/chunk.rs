@@ -281,6 +281,9 @@ impl Chunk {
     
     pub fn generate_terrain(&mut self, world_pos: Vec3) {
         let perlin = Perlin::new(1); // TODO: MAKE RANDOMIZED LATER
+        let scale = 0.04;
+        let height_scale = 32.0;
+        let base_height = 32;
         
         for x in 0..CHUNK_SIZE {
             for z in 0..CHUNK_SIZE {
@@ -288,12 +291,11 @@ impl Chunk {
                 let wz = world_pos.z + z as f32;
                 
                 let height = (perlin.get([
-                    wx as f64 * 0.05,
-                    wz as f64 * 0.05,
-                ]) * 8.0 + 8.0) as usize;
+                    wx as f64 * scale,
+                    wz as f64 * scale,
+                ]) * height_scale) as i32;
                 
                 for y in 0..CHUNK_SIZE {
-                    let wy = world_pos.y + y as f32;
                     let abs_y = y as i32 + (self.position.y as i32 * CHUNK_SIZE as i32);
                     
                     if abs_y < height as i32 {
