@@ -283,7 +283,7 @@ impl Chunk {
         let perlin = Perlin::new(1); // TODO: MAKE RANDOMIZED LATER
         let scale = 0.04;
         let height_scale = 32.0;
-        let water_level = 1;
+        let water_level = 0;
         
         for x in 0..CHUNK_SIZE {
             for z in 0..CHUNK_SIZE {
@@ -308,7 +308,8 @@ impl Chunk {
                         };
                         
                         self.set_block(x, y, z, block_type);
-                    } else if abs_y <= water_level {
+                    }
+                    if abs_y <= water_level {
                         self.set_block(x, y, z, BlockType::Water);
                     }
                 }
