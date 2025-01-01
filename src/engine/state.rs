@@ -125,7 +125,7 @@ impl State {
         let render_distance = 16;
         let chunks = HashMap::new();
         let chunk_load_queue = VecDeque::new();
-        let chunks_per_frame = 64;
+        let chunks_per_frame = 256;
         let last_chunk_pos = None;
 
         let mut state = Self {
