@@ -281,44 +281,144 @@ impl Chunk {
     
     pub fn generate_terrain(&mut self, world_pos: Vec3) {
         let perlin = Perlin::new(1); // TODO: MAKE RANDOMIZED LATER
-        let scale = 0.04;
-        let height_scale = 32.0;
-        let water_level = 0;
+        let mountain_noise = Perlin::new(2);
+        let biome_noise = Perlin::new(3);
+        let cave_noise = Perlin::new(4);
+        
+        let base_scale = 0.02;
+        let mountain_scale = 0.015;
+        let biome_scale = 0.007;
+        let detail_scale = 0.08;
+        let cave_scale = 0.05;
         
         for x in 0..CHUNK_SIZE {
             for z in 0..CHUNK_SIZE {
                 let wx = world_pos.x + x as f32;
                 let wz = world_pos.z + z as f32;
                 
-                let height = (perlin.get([
-                    wx as f64 * scale,
-                    wz as f64 * scale,
-                ]) * height_scale) as i32;
+                let base_height = (perlin.get([
+                    wx as f64 * base_scale,
+                    wz as f64 * base_scale,
+                ]) * 32.0) as i32;
+                
+                let mountain_influence = (mountain_noise.get([
+                    wx as f64 * mountain_scale,
+                    wz as f64 * mountain_scale,
+                ]) + 1.0) * 48.0;
+                
+                let biome_value = biome_noise.get([
+                    wx as f64 * biome_scale,
+                    wz as f64 * biome_scale,
+                ]);
+                
+                let height = base_height + mountain_influence as i32;
                 
                 for y in 0..CHUNK_SIZE {
+                    let wy = world_pos.y + y as f32;
                     let abs_y = y as i32 + (self.position.y as i32 * CHUNK_SIZE as i32);
                     
+                    let cave_density = cave_noise.get([
+                        wx as f64 * cave_scale,
+                        wy as f64 * cave_scale,
+                        wz as f64 * cave_scale
+                    ]);
+                    
                     if abs_y < height as i32 {
-                        let block_type = if abs_y < -4 {
-                            BlockType::Stone
-                        } else if abs_y < -1 {
-                            BlockType::Dirt
+                        if cave_density > 0.03 && abs_y < height - 5 {
+                            continue;
+                        }
+                        
+                        let block_type = if abs_y > height - 1 {
+                            if biome_value > 0.6 {
+                                if abs_y > 40 {
+                                    BlockType::Snow
+                                } else {
+                                    BlockType::Stone
+                                }
+                            } else if biome_value > 0.2 {
+                                BlockType::Grass
+                            } else if biome_value > -0.2 {
+                                BlockType::Sand
+                            } else {
+                                BlockType::Clay
+                            }
+                        } else if abs_y > height - 4 {
+                            if biome_value > 0.2 {
+                                BlockType::Dirt
+                            } else {
+                                BlockType::Sand
+                            }
                         } else {
-                            BlockType::Grass
+                            let stone_noise = perlin.get([
+                                wx as f64 * detail_scale,
+                                abs_y as f64 * detail_scale,
+                                wz as f64 * detail_scale,
+                            ]);
+                            
+                            if stone_noise > 0.7 && abs_y < 0 {
+                                match (stone_noise * 100.0) as i32 % 4 {
+                                    0 => BlockType::IronOre,
+                                    1 => BlockType::CoalOre,
+                                    2 => BlockType::GoldOre,
+                                    _ => BlockType::Stone,
+                                }
+                            } else {
+                                BlockType::Stone
+                            }
                         };
                         
                         self.set_block(x, y, z, block_type);
-                    } else if abs_y <= water_level {
+                        
+                    } else if abs_y <= 0 {
                         self.set_block(x, y, z, BlockType::Water);
                     }
                 }
                 
-                if self.position.y < 0.0 {
-                    self.set_block(x, 0, z, BlockType::Stone);
+                if let Some(surface_y) = (0..CHUNK_SIZE).rev()
+                        .find(|&y| self.get_block(x, y, z) != BlockType::Air
+                        && self.get_block(x, y, z) != BlockType::Water) {
+                            if self.get_block(x, surface_y, z) == BlockType::Grass {
+                                let tree_chance = perlin.get([
+                                    wx as f64 * 0.3,
+                                    wz as f64 * 0.3,
+                                ]);
+                                
+                                if tree_chance > 0.8 && surface_y + 4 < CHUNK_SIZE {
+                                    for ty in 1..4 {
+                                        self.set_block(x, surface_y + ty, z, BlockType::Wood);
+                                    }
+                                
+                                for lx in -2..=2 {
+                                    for ly in 3..=5 {
+                                        for lz in -2..=2 {
+                                            let leaf_x = x as i32 + lx;
+                                            let leaf_y = surface_y as i32 + ly;
+                                            let leaf_z = z as i32 + lz;
+                                            
+                                            if leaf_x >= 0 && leaf_x < CHUNK_SIZE as i32
+                                            && leaf_y >= 0 && leaf_y < CHUNK_SIZE as i32
+                                            && leaf_z >= 0 && leaf_z < CHUNK_SIZE as i32 {
+                                                if (lx * lx + (ly - 4) * (ly - 4) + lz * lz) as f32 <= 4.0 {
+                                                    self.set_block(leaf_x as usize, leaf_y as usize, leaf_z as usize, BlockType::Leaves);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if self.position.y <= 0.0 {
+                for x in 0..CHUNK_SIZE {
+                    for z in 0..CHUNK_SIZE {
+                        self.set_block(x, 0, z, BlockType::Bedrock);
+                    }
                 }
             }
         }
-    }
     
     pub fn get_chunk_pos(world_pos: Vec3) -> Vec3 {
         Vec3::new(
