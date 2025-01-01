@@ -16,21 +16,23 @@ This project is a work in progress and is not yet ready for production. It is a 
 
 ### Current Features
 
+- **Procedural World Generation**: An infinite world is now generated, consisting of grass, stone, water, and sand.
+
 - **Chunk Management**: The world is divided into chunks, each containing a 3D array of blocks.
 
 - **Block Types**: Various block types are defined, each with unique properties and behaviors. This includes transparency, flammability, and interaction types that will later be used by the upcoming physics engine.
 
 - **Mesh Generation**: The engine generates meshes for visible blocks, optimizing rendering by only creating geometry for blocks that are not surrounded by other blocks.
 
+- **Optimizations**: Frustum culling and chunk loading and unloading have been implemented for better performance.
+
 ## Future Goals
-
-- [ ] **Procedural World Generation**: Implement algorithms to generate dynamically generate terrain and structures.
-
-- [ ] **Fluids**: Implement and simulate fluids.
-
-- [ ] **Physics Engine**: Introduce a physics engine to handle collisions, gravity, etc.
 
 - [ ] **Lighting System**: Develop a lighting system, day/night cycles, shadows, and ambient occlusion.
 
-- [ ] **Optimization**: Implement frustum culling, greedy meshing, and LOD (level of detail) for distant chunks to improve performance.
+- [ ] **Physics Engine**: Introduce a physics engine to handle collisions, gravity, etc.
+
+- [ ] **Fluids**: Implement and simulate fluids.
+
+- [ ] **Optimization**: Implement greedy meshing and LOD (level of detail) for distant chunks to improve performance.
 
