@@ -6,6 +6,7 @@ use crate::world::{
     block::{BlockPos, BlockType},
     chunk::{Chunk, ChunkPos, CHUNK_SIZE},
 };
+use crate::engine::light::Light;
 use crate::utils::frustum::Frustum;
 use glam::Vec3;
 use winit::{event::WindowEvent, window::Window};
@@ -31,11 +32,14 @@ pub struct State {
     render_distance: i32,
     chunks_per_frame: usize,
     last_chunk_pos: Option<ChunkPos>,
+    time: f32,
+    light: Light,
 }
 
 impl State {
     pub async fn new(window: &Window) -> Self {
         let size = window.inner_size();
+        let time = 0.0;
             
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
@@ -127,6 +131,12 @@ impl State {
         let chunk_load_queue = VecDeque::new();
         let chunks_per_frame = 256;
         let last_chunk_pos = None;
+        
+        let light = Light::new(
+            Vec3::new(0.0, 100.0, 0.0),
+            Vec3::new(1.0, 1.0, 1.0),
+            Vec3::new(-0.5, -1.0, -0.3),
+        );
 
         let mut state = Self {
             surface,
@@ -142,6 +152,8 @@ impl State {
             render_distance,
             chunks_per_frame,
             last_chunk_pos,
+            time,
+            light,
         };
         
         state.update_chunks();
@@ -171,6 +183,16 @@ impl State {
             self.last_chunk_pos = Some(current_chunk_pos);
             self.update_chunks();
         }
+        
+        self.time += 0.05; // TODO: MAKE SLOWER AFTER TESTING
+        let sun_angle = self.time % (2.0 * std::f32::consts::PI);
+        let sun_height = sun_angle.sin();
+        let sun_distance = sun_angle.cos();
+        
+        self.light.direction = Vec3::new(sun_distance, -sun_height, 0.0).normalize();
+        let day_intensity = (sun_height + 1.0) * 0.5;
+        self.light.update();
+        self.renderer.update_light_buffer(&self.queue, &self.light.uniform);
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {

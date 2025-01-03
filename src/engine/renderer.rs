@@ -356,6 +356,10 @@ impl Renderer {
 
         Ok(())
     }
+    
+    pub fn update_light_buffer(&self, queue: &wgpu::Queue, light_uniform: &crate::engine::light::LightUniform) {
+        queue.write_buffer(&self.light_buffer, 0, bytemuck::cast_slice(&[*light_uniform]));
+    }
 
     pub fn update_vertices(&mut self, device: &wgpu::Device, vertices: &[Vertex]) {
         self.vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
