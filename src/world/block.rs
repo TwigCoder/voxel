@@ -430,7 +430,7 @@ impl BlockType {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ParticleEffect {
     Dust,
     Stone,

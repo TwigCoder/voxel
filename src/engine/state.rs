@@ -184,7 +184,7 @@ impl State {
             self.update_chunks();
         }
         
-        self.time += 0.05; // TODO: MAKE SLOWER AFTER TESTING
+        self.time += 0.01; // TODO: MAKE SLOWER AFTER TESTING
         let sun_angle = self.time % (2.0 * std::f32::consts::PI);
         let sun_height = sun_angle.sin();
         let sun_distance = sun_angle.cos();
