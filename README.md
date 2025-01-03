@@ -25,10 +25,10 @@ Light and the day/night cycle has now been introduced to the engine.
 
 ## Backlog
 
--[ ] Procedurally generating structures and biomes.
+- [ ] Procedurally generating structures and biomes.
 
--[ ] Optimizations including level of detail and multithreading.
+- [ ] Optimizations including level of detail and multithreading.
 
--[ ] Developing the physics engine and animations. (fluid logic, etc.)
+- [ ] Developing the physics engine and animations. (fluid logic, etc.)
 
--[ ] Designing a user interface for the soon-to-be-implemented players.
+- [ ] Designing a user interface for the soon-to-be-implemented players.
