@@ -13,7 +13,7 @@ I plan to use this engine to create my own game in the future.
 3. Right mouse button + mouse movement to look around
 4. LControl for sprint (2x movement speed)
 
-### Current Features
+## Current Features
 
 Block types are fully implemented, including their unique properties and behaviors (transparency, flammability, and interaction types).
 
