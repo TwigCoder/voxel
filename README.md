@@ -1,10 +1,10 @@
-# Rust-Based Voxel Engine
+# Rust Voxel Engine
 
 ## Overview
 
-This project is a 3D voxel engine built entirely using Rust. The engine is designed to create a voxel-based environment, allowing for the rendering of various block types and interactions. The architecture is modular.
+This is a voxel engine built completely in Rust! This project was inspired by Veloren (an open-source voxel game built in Rust) and was an opportunity for me to learn the language whilst coding something I love!
 
-This project is a work in progress and is not yet ready for production. It is a personal project for me to learn Rust and 3D graphics programming and is inspired by Veloren.
+I plan to use this engine to create my own game in the future.
 
 ## Movement
 
@@ -13,26 +13,22 @@ This project is a work in progress and is not yet ready for production. It is a 
 3. Right mouse button + mouse movement to look around
 4. LControl for sprint (2x movement speed)
 
-
 ### Current Features
 
-- **Procedural World Generation**: An infinite world is now generated, consisting of grass, stone, water, and sand.
+Block types are fully implemented, including their unique properties and behaviors (transparency, flammability, and interaction types).
 
-- **Chunk Management**: The world is divided into chunks, each containing a 3D array of blocks.
+The world is divided into chunks. Visible blocks in these chunks are rendered through mesh generation along with optimizations such as frustum culling and chunk loading/unloading.
 
-- **Block Types**: Various block types are defined, each with unique properties and behaviors. This includes transparency, flammability, and interaction types that will later be used by the upcoming physics engine.
+The world is now infinite and procedurally generated, consisting of grass, stone, water, and sand.
 
-- **Mesh Generation**: The engine generates meshes for visible blocks, optimizing rendering by only creating geometry for blocks that are not surrounded by other blocks.
+Light and the day/night cycle has now been introduced to the engine.
 
-- **Optimizations**: Frustum culling and chunk loading and unloading have been implemented for better performance.
+## Backlog
 
-## Future Goals
+-[ ] Procedurally generating structures and biomes.
 
-- [ ] **Lighting System**: Develop a lighting system, day/night cycles, shadows, and ambient occlusion.
+-[ ] Optimizations including level of detail and multithreading.
 
-- [ ] **Physics Engine**: Introduce a physics engine to handle collisions, gravity, etc.
+-[ ] Developing the physics engine and animations. (fluid logic, etc.)
 
-- [ ] **Fluids**: Implement and simulate fluids.
-
-- [ ] **Optimization**: Implement greedy meshing and LOD (level of detail) for distant chunks to improve performance.
-
+-[ ] Designing a user interface for the soon-to-be-implemented players.
