@@ -84,6 +84,8 @@ impl Chunk {
                     let color = block.get_face_color(BlockFace::Top);
 
                     if y == CHUNK_SIZE - 1 || self.get_block(x, y + 1, z).is_transparent() {
+                        let normal = [0.0, 1.0, 0.0];
+                        
                         vertices.extend_from_slice(&[
                             Vertex {
                                 position: [
@@ -92,6 +94,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Top),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -100,6 +103,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Top),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -108,6 +112,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Top),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -116,6 +121,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Top),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -124,6 +130,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Top),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -132,11 +139,14 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Top),
+                                normal,
                             },
                         ]);
                     }
 
                     if y == 0 || self.get_block(x, y - 1, z).is_transparent() {
+                        let normal = [0.0, -1.0, 0.0];
+                        
                         vertices.extend_from_slice(&[
                             Vertex {
                                 position: [
@@ -145,6 +155,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Bottom),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -153,6 +164,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Bottom),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -161,6 +173,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Bottom),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -169,6 +182,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Bottom),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -177,6 +191,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Bottom),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -185,11 +200,14 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::Bottom),
+                                normal,
                             },
                         ]);
                     }
 
                     if z == 0 || self.get_block(x, y, z - 1).is_transparent() {
+                        let normal = [0.0, 0.0, -1.0];
+                        
                         vertices.extend_from_slice(&[
                             Vertex {
                                 position: [
@@ -198,6 +216,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::North),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -206,6 +225,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::North),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -214,6 +234,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::North),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -222,6 +243,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::North),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -230,6 +252,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::North),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -238,11 +261,14 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::North),
+                                normal,
                             },
                         ]);
                     }
 
                     if z == CHUNK_SIZE - 1 || self.get_block(x, y, z + 1).is_transparent() {
+                        let normal = [0.0, 0.0, 1.0];
+                        
                         vertices.extend_from_slice(&[
                             Vertex {
                                 position: [
@@ -251,6 +277,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::South),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -259,6 +286,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::South),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -267,6 +295,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::South),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -275,6 +304,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::South),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -283,6 +313,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::South),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -291,11 +322,14 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::South),
+                                normal,
                             },
                         ]);
                     }
 
                     if x == CHUNK_SIZE - 1 || self.get_block(x + 1, y, z).is_transparent() {
+                        let normal = [1.0, 0.0, 0.0];
+                        
                         vertices.extend_from_slice(&[
                             Vertex {
                                 position: [
@@ -304,6 +338,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::East),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -312,6 +347,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::East),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -320,6 +356,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::East),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -328,6 +365,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::East),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -336,6 +374,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::East),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -344,11 +383,14 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::East),
+                                normal,
                             },
                         ]);
                     }
 
                     if x == 0 || self.get_block(x - 1, y, z).is_transparent() {
+                        let normal = [-1.0, 0.0, 0.0];
+                        
                         vertices.extend_from_slice(&[
                             Vertex {
                                 position: [
@@ -357,6 +399,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::West),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -365,6 +408,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::West),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -373,6 +417,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::West),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -381,6 +426,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::West),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -389,6 +435,7 @@ impl Chunk {
                                     z as f32 + 1.0 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::West),
+                                normal,
                             },
                             Vertex {
                                 position: [
@@ -397,6 +444,7 @@ impl Chunk {
                                     z as f32 + self.position.z,
                                 ],
                                 color: block.get_face_color(BlockFace::West),
+                                normal,
                             },
                         ]);
                     }
