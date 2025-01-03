@@ -1,5 +1,7 @@
 # Rust Voxel Engine
 
+[![Rust](https://github.com/TwigCoder/voxel/actions/workflows/rust.yml/badge.svg)](https://github.com/TwigCoder/voxel/actions/workflows/rust.yml)
+
 ## Overview
 
 This is a voxel engine built completely in Rust! This project was inspired by Veloren (an open-source voxel game built in Rust) and was an opportunity for me to learn the language whilst coding something I love!
