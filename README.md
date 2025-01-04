@@ -23,7 +23,7 @@ Block types are fully implemented, including their unique properties and behavio
 
 The world is divided into chunks. Visible blocks in these chunks are rendered through mesh generation along with optimizations such as frustum culling and chunk loading/unloading.
 
-The world is now infinite and procedurally generated, consisting of grass, stone, water, and sand. Structures such as trees are randomly generated.
+The world is now infinite and procedurally generated, consisting of grass, stone, water, and sand.
 
 Light and the day/night cycle has now been introduced to the engine.
 
