@@ -2,6 +2,7 @@ use super::block::{BlockFace, BlockType};
 use crate::engine::renderer::Vertex;
 use glam::Vec3;
 use noise::{NoiseFn, Perlin};
+use rand::prelude::*;
 use rand::Rng;
 
 pub const CHUNK_SIZE: usize = 16;
@@ -454,55 +455,130 @@ impl Chunk {
 
         vertices
     }
+    
+    fn generate_tree(&mut self, x: usize, y: usize, z: usize) {
+        let height = rand::thread_rng().gen_range(4..7);
+        
+        for dy in 0..height {
+            if y + dy >= CHUNK_SIZE {break;}
+            self.set_block(x, y + dy, z, BlockType::Wood);
+        }
+        
+    if y + height < CHUNK_SIZE {
+        for dx in -2..=2 {
+            for dz in -2..=2 {
+                for dy in -2..=0 {
+                    let nx = x as i32 + dx;
+                    let ny = (y + height) as i32 + dy;
+                    let nz = z as i32 + dz;
+                    
+                    if nx >= 0 && nx < CHUNK_SIZE as i32
+                    && ny >= 0 && ny < CHUNK_SIZE as i32
+                    && nz >= 0 && nz < CHUNK_SIZE as i32 {
+                        if dx * dx + dy * dy + dz * dz <= 4 {
+                            self.set_block(nx as usize, ny as usize, nz as usize, BlockType::Leaves);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    }
+    
+    fn generate_features(&mut self) {
+        for x in 0..CHUNK_SIZE {
+            for z in 0..CHUNK_SIZE {
+                for y in 0..CHUNK_SIZE {
+                    if self.get_block(x, y, z) == BlockType::Grass {
+                        let mut rng = thread_rng();
+                        
+                        if rng.gen::<f32>() < 0.01 {
+                            self.generate_tree(x, y + 1, z);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     pub fn generate_terrain(&mut self, world_pos: Vec3) {
-        let perlin = Perlin::new(1); // TODO: MAKE RANDOMIZED LATER
-        let scale = 0.04;
-        let height_scale = 32.0;
-        let water_level = 0;
-        let beach_level = 2;
+        let perlin = Perlin::new(1234); // TODO: MAKE RANDOMIZED LATER
+        let scale = 0.01;
+        
+        let continent_scale = 0.002;
+        let hills_scale = 0.02;
+        let roughness_scale = 0.1;
         
         for x in 0..CHUNK_SIZE {
             for z in 0..CHUNK_SIZE {
                 let wx = world_pos.x + x as f32;
-                let wz = world_pos.z + z as f32;
+                let wz = world_pos.z + z  as f32;
                 
-                let height = (perlin.get([
-                    wx as f64 * scale,
-                    wz as f64 * scale,
-                ]) * height_scale) as i32;
+                let continent = (perlin.get([
+                    wx as f64 * continent_scale,
+                    wz as f64 * continent_scale,
+                ]) + 1.0) * 32.0;
                 
-                let beach_noise = (perlin.get([
-                    (wx as f64 * scale * 2.0) + 100.0,
-                    (wz as f64 * scale * 2.0) + 100.0,
-                ]) + 1.0) * 2.0;
+                let hills =(perlin.get([
+                    wx as f64 * hills_scale + 1000.0,
+                    wz as f64 * hills_scale + 1000.0,
+                ]) + 1.0) * 16.0;
+                
+                let roughness =perlin.get([
+                    wx as f64 * roughness_scale + 2000.0,
+                    wz as f64 * roughness_scale + 2000.0,
+                ]) * 4.0;
+                
+                let height = (continent + hills + roughness) as i32;
+                let base_height = 64;
+                let total_height = base_height + height;
                 
                 for y in 0..CHUNK_SIZE {
-                    let abs_y = y as i32 + (self.position.y as i32 * CHUNK_SIZE as i32);
+                    let abs_y = y as i32 + (self.position.y as i32 + CHUNK_SIZE as i32);
                     
-                    if abs_y <= water_level && abs_y > height {
-                        self.set_block(x, y, z, BlockType::Water);
-                    } else if abs_y <= height {
-                        let block_type = if abs_y < -4 {
-                            BlockType::Stone
-                        } else if abs_y < -1 {
+                    if abs_y < total_height {
+                        let block_type = if abs_y == total_height - 1 && abs_y > base_height {
+                            BlockType::Grass
+                        } else if abs_y <= base_height {
                             BlockType::Dirt
-                        } else {
-                            if abs_y <= water_level + beach_noise as i32 || abs_y <= water_level + 1 {
+                        } else if abs_y <= base_height {
+                            if abs_y > base_height - 5 {
                                 BlockType::Sand
                             } else {
-                                BlockType::Grass
+                                let ore_noise = perlin.get([
+                                    (wx as f64 * 0.5) + abs_y as f64 * 0.1,
+                                    (wz as f64 * 0.5) + abs_y as f64 * 0.1,
+                                ]);
+                                
+                                if ore_noise > 0.8 && abs_y < 20 {
+                                    BlockType::DiamondOre
+                                } else if ore_noise > 0.7 && abs_y < 40 {
+                                    BlockType::IronOre
+                                } else if ore_noise > 0.6 {
+                                    BlockType::CoalOre
+                                } else {
+                                    BlockType::Stone
+                                }
                             }
+                        } else {
+                            BlockType::Stone
                         };
-                        self.set_block(x, y, z, block_type);
+                        
+                        self.set_block(x, y, z, block_type)
+                    } else if abs_y <= base_height {
+                        self.set_block(x, y, z, BlockType::Water);
+                    } else {
+                        self.set_block(x, y, z, BlockType::Air);
                     }
                 }
-
-                if self.position.y < 0.0 {
-                    self.set_block(x, 0, z, BlockType::Stone);
+                
+                if self.position.y == 0.0 {
+                    self.set_block(x, 0, z, BlockType::Bedrock);
                 }
             }
         }
+        
+        self.generate_features();
     }
 
     pub fn get_chunk_pos(world_pos: Vec3) -> Vec3 {

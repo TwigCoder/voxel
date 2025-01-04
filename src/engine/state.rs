@@ -88,7 +88,7 @@ impl State {
         surface.configure(&device, &config);
 
         let camera = Camera::new(
-            Vec3::new(8.0, 20.0, 8.0),
+            Vec3::new(8.0, 100.0, 8.0),
             size.width as f32 / size.height as f32,
         );
         let camera_controller = CameraController::new(0.5);
