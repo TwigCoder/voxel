@@ -1,6 +1,8 @@
 # Rust Voxel Engine
 
-[![Rust](https://github.com/TwigCoder/voxel/actions/workflows/rust.yml/badge.svg)](https://github.com/TwigCoder/voxel/actions/workflows/rust.yml)
+[![Rust](https://github.com/TwigCoder/voxel/actions/workflows/rust.yml/badge.svg)](https://github.com/TwigCoder/voxel/actions/workflows/rust.yml)  
+
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/TwigCoder/voxel)
 
 ## Overview
 

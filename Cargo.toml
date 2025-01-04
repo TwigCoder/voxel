@@ -11,3 +11,7 @@ noise = "0.8"
 rand = "0.8"
 pollster = "0.3"
 bytemuck = { version = "1.13", features = ["derive"] }
+rayon = "1.10.0"
+crossbeam = "0.8.4"
+parking_lot = "0.12.3"
+num_cpus = "1.16.0"
