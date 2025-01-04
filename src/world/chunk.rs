@@ -459,30 +459,41 @@ impl Chunk {
     fn generate_tree(&mut self, x: usize, y: usize, z: usize) {
         let height = rand::thread_rng().gen_range(4..7);
         
+        if y + height + 2 >= CHUNK_SIZE {
+            return;
+        }
+        
+        if x < 2 || x >= CHUNK_SIZE - 2 || z < 2 || z >= CHUNK_SIZE - 2 {
+            return;
+        }
+        
         for dy in 0..height {
-            if y + dy >= CHUNK_SIZE {break;}
             self.set_block(x, y + dy, z, BlockType::Wood);
         }
         
-    if y + height < CHUNK_SIZE {
-        for dx in -2..=2 {
-            for dz in -2..=2 {
-                for dy in -2..=0 {
+        let leave_start = y + height - 2;
+        let leaf_height = 4;
+        
+        for dy in 0..4 {
+            let radius = if dy == 0 || dy == leaf_height - 1 {1} else {2};
+        
+            for dx in -radius..=radius {
+                for dz in -radius..radius {
                     let nx = x as i32 + dx;
-                    let ny = (y + height) as i32 + dy;
+                    let ny = (leave_start + dy) as i32;
                     let nz = z as i32 + dz;
                     
                     if nx >= 0 && nx < CHUNK_SIZE as i32
                     && ny >= 0 && ny < CHUNK_SIZE as i32
                     && nz >= 0 && nz < CHUNK_SIZE as i32 {
-                        if dx * dx + dy * dy + dz * dz <= 4 {
+                        if !(dx == 1 && dz == 0 && dy < height) {
                             self.set_block(nx as usize, ny as usize, nz as usize, BlockType::Leaves);
                         }
                     }
                 }
             }
         }
-    }
+        
     }
     
     fn generate_features(&mut self) {
