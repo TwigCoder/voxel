@@ -88,43 +88,11 @@ impl State {
         surface.configure(&device, &config);
 
         let camera = Camera::new(
-            Vec3::new(8.0, 100.0, 8.0),
+            Vec3::new(8.0, 50.0, 8.0),
             size.width as f32 / size.height as f32,
         );
         let camera_controller = CameraController::new(0.5);
         let mut renderer = Renderer::new(&device, &config, &camera);
-
-        let mut chunks = Vec::new();
-        
-        for x in -1..=1 {
-            for y in -1..=1 {
-                for z in -1..=1 {
-                    let position = Vec3::new(
-                        x as f32 * CHUNK_SIZE as f32,
-                        y as f32 * CHUNK_SIZE as f32,
-                        z as f32 * CHUNK_SIZE as f32
-                    );
-                    let mut chunk = Chunk::new(position);
-                
-                if y == -1 {
-                    for cx in 0..CHUNK_SIZE {
-                        for cz in 0..CHUNK_SIZE {
-                            chunk.set_block(cx, CHUNK_SIZE-1, cz, BlockType::Grass);
-                        }
-                    }
-                }
-                chunks.push(chunk);
-            }
-            }
-        }
-        
-        let mut renderer = Renderer::new(&device, &config, &camera);
-        
-        let mut initial_vertices = Vec::new();
-        for chunk in &chunks {
-            initial_vertices.extend(chunk.generate_mesh());
-        }
-        renderer.update_vertices(&device, &initial_vertices);
         
         let render_distance = 16;
         let chunks = HashMap::new();
@@ -156,7 +124,24 @@ impl State {
             light,
         };
         
-        state.update_chunks();
+        let spawn_chunk = ChunkPos::from_world_pos(state.camera.position);
+        
+        for y in -4..=4 {
+            for x in -4..=4 {
+                for z in -4..=4 {
+                    let pos = ChunkPos::new(
+                        spawn_chunk.x + x,
+                        spawn_chunk.y + y,
+                        spawn_chunk.z + z,
+                    );
+                    
+                    let mut chunk = Chunk::new(pos.to_world_pos());
+                    chunk.generate_terrain(pos.to_world_pos());
+                    state.chunks.insert(pos, chunk);
+                }
+            }
+        }
+        
         state
     }
 
@@ -228,7 +213,7 @@ impl State {
         let mut chunks_to_keep = HashSet::new();
         let mut new_load_requests: Vec<ChunkLoadRequest> = Vec::new();
         
-        for y in -self.render_distance/4..=self.render_distance/4 {
+        for y in -4..=4 {
             for x in -self.render_distance..=self.render_distance {
                 for z in -self.render_distance..=self.render_distance {
                     let chunk_pos = ChunkPos::new(

@@ -1,5 +1,7 @@
+use super::block::{BlockPos, World};
 use super::block::{BlockFace, BlockType};
 use crate::engine::renderer::Vertex;
+use crate::world::biome::BiomeGenerator;
 use glam::Vec3;
 use noise::{NoiseFn, Perlin};
 use rand::prelude::*;
@@ -511,85 +513,97 @@ impl Chunk {
             }
         }
     }
+    
+    fn get_underground_block(&self, wx: f32, y: f32, wz: f32) -> BlockType {
+        let perlin = Perlin::new(1234);
+        let cave_noise = perlin.get([
+            wx as f64 * 0.03,
+            y as f64 * 0.03,
+            wz as f64 * 0.03,
+        ]);
+        
+        // TODO: CAVES: NEED TO MAKE LESS LAGGY
+        if cave_noise > 0.5 {
+            return BlockType::Air;
+        }
+        
+        let ore_noise = perlin.get([
+            (wx as f64 * 0.5) + y as f64 * 0.1,
+            (wz as f64 * 0.5) + y as f64 * 0.1,
+        ]);
+        
+        if y < 20.0 && ore_noise > 0.8 {
+            BlockType::DiamondOre
+        } else if y < 40.0 && ore_noise > 0.7 {
+            BlockType::IronOre
+        } else if y < 60.0 && ore_noise > 0.75 {
+            BlockType::CoalOre
+        } else {
+            let stone_variation = perlin.get([
+                wx as f64 * 0.2,
+                y as f64 * 0.2,
+                wz as f64 * 0.2,
+            ]);
+            
+            if stone_variation > 0.7 {
+                BlockType::Gravel
+            } else {
+                BlockType::Stone
+            }
+        }
+    }
 
     pub fn generate_terrain(&mut self, world_pos: Vec3) {
         let perlin = Perlin::new(1234); // TODO: MAKE RANDOMIZED LATER
-        let scale = 0.01;
-        
-        let continent_scale = 0.002;
-        let hills_scale = 0.02;
-        let roughness_scale = 0.1;
-        
+        let biome_gen = BiomeGenerator::new(1234);
+            
         for x in 0..CHUNK_SIZE {
             for z in 0..CHUNK_SIZE {
                 let wx = world_pos.x + x as f32;
-                let wz = world_pos.z + z  as f32;
+                let wz = world_pos.z + z as f32;
+                
+                let biome = biome_gen.get_biome(wx as f64, wz as f64);
+                let properties = biome.get_properties();
                 
                 let continent = (perlin.get([
-                    wx as f64 * continent_scale,
-                    wz as f64 * continent_scale,
-                ]) + 1.0) * 32.0;
+                    wx as f64 * 0.002,
+                    wz as f64 * 0.002,
+                ]) + 1.0) * 32.0 * properties.terrain_height_multiplier as f64;
                 
-                let hills =(perlin.get([
-                    wx as f64 * hills_scale + 1000.0,
-                    wz as f64 * hills_scale + 1000.0,
-                ]) + 1.0) * 16.0;
+                let hills = (perlin.get([
+                    wx as f64 * 0.02 + 1000.0,
+                    wz as f64 * 0.02 + 1000.0,
+                ]) + 1.0) * 16.0 * properties.terrain_roughness as f64;
                 
-                let roughness =perlin.get([
-                    wx as f64 * roughness_scale + 2000.0,
-                    wz as f64 * roughness_scale + 2000.0,
-                ]) * 4.0;
-                
-                let height = (continent + hills + roughness) as i32;
+                let height = (continent + hills) as i32;
                 let base_height = 64;
                 let total_height = base_height + height;
                 
-                for y in 0..CHUNK_SIZE {
-                    let abs_y = y as i32 + (self.position.y as i32 + CHUNK_SIZE as i32);
-                    
-                    if abs_y < total_height {
-                        let block_type = if abs_y == total_height - 1 && abs_y > base_height {
-                            BlockType::Grass
-                        } else if abs_y <= base_height {
-                            BlockType::Dirt
-                        } else if abs_y <= base_height {
-                            if abs_y > base_height - 5 {
-                                BlockType::Sand
-                            } else {
-                                let ore_noise = perlin.get([
-                                    (wx as f64 * 0.5) + abs_y as f64 * 0.1,
-                                    (wz as f64 * 0.5) + abs_y as f64 * 0.1,
-                                ]);
-                                
-                                if ore_noise > 0.8 && abs_y < 20 {
-                                    BlockType::DiamondOre
-                                } else if ore_noise > 0.7 && abs_y < 40 {
-                                    BlockType::IronOre
-                                } else if ore_noise > 0.6 {
-                                    BlockType::CoalOre
-                                } else {
-                                    BlockType::Stone
-                                }
-                            }
-                        } else {
-                            BlockType::Stone
-                        };
-                        
-                        self.set_block(x, y, z, block_type)
-                    } else if abs_y <= base_height {
-                        self.set_block(x, y, z, BlockType::Water);
-                    } else {
-                        self.set_block(x, y, z, BlockType::Air);
-                    }
-                }
+    
+                let chunk_bottom = self.position.y as i32 * CHUNK_SIZE as i32;
+                let chunk_top = chunk_bottom + CHUNK_SIZE as i32;
                 
-                if self.position.y == 0.0 {
-                    self.set_block(x, 0, z, BlockType::Bedrock);
+                for y in 0..CHUNK_SIZE {
+                    let abs_y = chunk_bottom + y as i32;
+                    
+                    let block_type = if abs_y < total_height {
+                        if abs_y == total_height - 1 {
+                            properties.top_block
+                        } else if abs_y > total_height - 5 {
+                            properties.under_block
+                        } else {
+                            self.get_underground_block(wx, abs_y as f32, wz)
+                        }
+                    } else if abs_y <= base_height {
+                        BlockType::Water
+                    } else {
+                        BlockType::Air
+                    };
+                    
+                    self.set_block(x, y, z, block_type);
                 }
             }
         }
-        
-        self.generate_features();
     }
 
     pub fn get_chunk_pos(world_pos: Vec3) -> Vec3 {
