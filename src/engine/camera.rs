@@ -13,6 +13,27 @@ pub struct Camera {
     pub zfar: f32,
 }
 
+#[repr(C)]
+#[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct CameraUniform {
+    view_proj: [[f32; 4]; 4],
+    camera_pos: [f32; 4],
+}
+
+impl CameraUniform {
+    pub fn new() -> Self {
+        Self {
+            view_proj: Mat4::IDENTITY.to_cols_array_2d(),
+            camera_pos: [0.0; 4],
+        }
+    }
+    
+    pub fn update_view_proj(&mut self, camera: &Camera) {
+        self.view_proj = camera.build_view_projection_matrix().to_cols_array_2d();
+        self.camera_pos = [camera.position.x, camera.position.y, camera.position.z, 1.0];
+    }
+}
+
 impl Camera {
     pub fn new(position: Vec3, aspect: f32) -> Self {
         Self {

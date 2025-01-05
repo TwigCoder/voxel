@@ -7,6 +7,8 @@ pub struct LightUniform {
     color: [f32; 4],
     direction: [f32; 4],
     ambient: [f32; 4],
+    attenuation: [f32; 4],
+    params: [f32; 4],
 }
 
 pub struct Light {
@@ -24,6 +26,8 @@ impl Light {
             color: [color.x, color.y, color.z, 1.0],
             direction: [direction.x, direction.y, direction.z, 1.0],
             ambient: [0.1, 0.1, 0.1, 1.0],
+            attenuation: [1.0, 0.09, 0.032, 0.0],
+            params: [1.0, 32.0, 0.0, 0.0],
         };
         
         Self {
