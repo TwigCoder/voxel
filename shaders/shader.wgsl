@@ -1,3 +1,14 @@
+struct ShadowUniforms {
+    light_view_proj: mat4x4<f32>,
+};
+
+@group(2) @binding(0)
+var shadow_map: texture_depth_2d;
+@group(2) @binding(1)
+var shadow_sampler: sampler_comparison;
+@group(2) @binding(2)
+var<uniform> shadow_uniforms: ShadowUniforms;
+
 struct CameraUniform {
     view_proj: mat4x4<f32>,
     camera_pos: vec4<f32>,
@@ -47,6 +58,18 @@ fn gamma_correction(color: vec3<f32>) -> vec3<f32> {
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    let light_space_position = shadow_uniforms.light_view_proj * vec4<f32>(in.world_position, 1.0);
+    let shadow_coords = light_space_position.xyz / light_space_position.w;
+    let shadow_xy = shadow_coords.xy * 0.5 + 0.5;
+    
+    let shadow_comparison = shadow_coords.z - 0.005;
+    let shadow = textureSampleCompare(
+        shadow_map,
+        shadow_sampler,
+        shadow_xy,
+        shadow_comparison
+    );
+
     let N = normalize(in.normal);
     let L = normalize(-light.direction.xyz);
     let V = normalize(camera.camera_pos.xyz - in.world_position);
@@ -67,12 +90,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let distance = length(light.position.xyz - in.world_position);
     let attenuation = 1.0 / (light.attenuation.x + light.attenuation.y * distance + light.attenuation.z * distance * distance);
     
-    var result = ambient + (diffuse + specular) * attenuation * light.params.x;
-    
-    let height_ao = clamp(in.world_position.y / 32.0, 0.5, 1.0);
-    let time_factor = max(dot(vec3<f32>(0.0, 1.0, 0.0), L), 0.0);
-    let night_color = vec3<f32>(0.1, 0.1, 0.3);
-    result = mix(night_color * ambient, result, time_factor);
+    var result = ambient;
+    let lit = diffuse + specular;
+    result += lit * shadow;
     
     result = gamma_correction(result);
     return vec4<f32>(result, 1.0);
