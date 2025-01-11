@@ -8,8 +8,13 @@ use crate::world::{
 };
 use crate::engine::light::Light;
 use crate::utils::frustum::Frustum;
+use crate::physics::{
+    physics_system::PhysicsSystem,
+    motion::Motion,
+    aabb::AABB,
+};
 use glam::Vec3;
-use winit::{event::WindowEvent, window::Window};
+use winit::{event::WindowEvent, platform::macos::MonitorHandleExtMacOS, window::Window};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 #[derive(Debug)]
@@ -34,7 +39,14 @@ pub struct State {
     last_chunk_pos: Option<ChunkPos>,
     time: f32,
     light: Light,
+    physics_system: PhysicsSystem,
+    player_motion: Motion,
+    player_collider: AABB,
 }
+
+const MOVEMENT_SPEED: f32 = 4.5;
+const AIR_CONTROL: f32 = 0.3;
+const JUMP_FORCE: f32 = 8.0;
 
 impl State {
     pub async fn new(window: &Window) -> Self {
@@ -137,6 +149,10 @@ impl State {
             Vec3::new(1.0, 1.0, 1.0),
             Vec3::new(-0.5, -1.0, -0.3),
         );
+        
+        let physics_system = PhysicsSystem::new();
+        let player_motion = Motion::new();
+        let player_collider = AABB::from_pos_size(camera.position, Vec3::new(0.6, 1.8, 0.6));
 
         let mut state = Self {
             surface,
@@ -154,6 +170,9 @@ impl State {
             last_chunk_pos,
             time,
             light,
+            physics_system,
+            player_motion,
+            player_collider,
         };
         
         state.update_chunks();
@@ -176,6 +195,79 @@ impl State {
     }
 
     pub fn update(&mut self) {
+        let dt = 1.0 / 60.0;
+        let mut movement = Vec3::ZERO;
+        
+        self.physics_system.update(
+            &mut self.camera.position,
+            &mut self.player_motion,
+            &mut self.player_collider,
+            &self.chunks,
+            dt,
+        );
+        
+        if self.camera_controller.is_moving() {
+            let move_speed = if self.camera_controller.is_running() {
+                MOVEMENT_SPEED * 2.0
+            } else {
+                MOVEMENT_SPEED
+            };
+            
+            let forward = self.camera.get_view_direction() * Vec3::new(1.0, 0.0, 1.0);
+            let right = forward.cross(Vec3::Y).normalize();
+            
+            if self.camera_controller.is_forward_pressed {
+                movement += forward;
+            }
+            if self.camera_controller.is_backward_pressed {
+                movement -= forward;
+            }
+            if self.camera_controller.is_right_pressed {
+                movement += right;
+            }
+            if self.camera_controller.is_left_pressed {
+                movement -= right;
+            }
+            if self.camera_controller.is_up_pressed {
+                movement += Vec3::Y;
+            }
+            if self.camera_controller.is_down_pressed {
+                movement -= Vec3::Y;
+            }
+            
+            if movement != Vec3::ZERO {
+                movement = movement.normalize();
+                
+                if self.player_motion.on_ground {
+                    movement *= move_speed;
+                } else {
+                    movement *= move_speed * AIR_CONTROL;
+                }
+            }
+        }
+        
+        if self.player_motion.on_ground {
+            self.player_motion.velocity.x = movement.x;
+            self.player_motion.velocity.z = movement.z;
+        
+            if self.camera_controller.is_up_pressed && !self.player_motion.jumping {
+                self.player_motion.velocity.y = JUMP_FORCE;
+                self.player_motion.jumping = true;
+                self.player_motion.on_ground = false;
+            }
+        } else {
+            self.player_motion.velocity.x += movement.x * AIR_CONTROL * dt;
+            self.player_motion.velocity.z += movement.z * AIR_CONTROL * dt;
+        }
+        
+        self.physics_system.update(
+            &mut self.camera.position,
+            &mut self.player_motion,
+            &mut self.player_collider,
+            &self.chunks,
+            dt,
+        );
+        
         self.camera_controller.update_camera(&mut self.camera);
         
         let current_chunk_pos = ChunkPos::from_world_pos(self.camera.position);

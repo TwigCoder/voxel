@@ -1,6 +1,7 @@
 mod engine;
 mod utils;
 mod world;
+mod physics;
 
 use engine::state::State;
 use winit::{

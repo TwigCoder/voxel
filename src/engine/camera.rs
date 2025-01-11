@@ -48,7 +48,7 @@ impl Camera {
         }
     }
 
-    fn get_view_direction(&self) -> Vec3 {
+    pub fn get_view_direction(&self) -> Vec3 {
         let (yaw_sin, yaw_cos) = self.yaw.to_radians().sin_cos();
         let (pitch_sin, pitch_cos) = self.pitch.to_radians().sin_cos();
         Vec3::new(yaw_cos * pitch_cos, pitch_sin, yaw_sin * pitch_cos).normalize()
@@ -63,15 +63,15 @@ impl Camera {
 pub struct CameraController {
     speed: f32,
     sensitivity: f32,
-    is_forward_pressed: bool,
-    is_backward_pressed: bool,
-    is_left_pressed: bool,
-    is_right_pressed: bool,
-    is_up_pressed: bool,
-    is_down_pressed: bool,
-    is_run_pressed: bool,
-    mouse_pressed: bool,
-    last_mouse_pos: Option<(f64, f64)>,
+    pub is_forward_pressed: bool,
+    pub is_backward_pressed: bool,
+    pub is_left_pressed: bool,
+    pub is_right_pressed: bool,
+    pub is_up_pressed: bool,
+    pub is_down_pressed: bool,
+    pub is_run_pressed: bool,
+    pub mouse_pressed: bool,
+    pub last_mouse_pos: Option<(f64, f64)>,
 }
 
 impl CameraController {
@@ -89,6 +89,19 @@ impl CameraController {
             mouse_pressed: false,
             last_mouse_pos: None,
         }
+    }
+    
+    pub fn is_moving(&self) -> bool {
+        self.is_forward_pressed ||
+        self.is_backward_pressed ||
+        self.is_left_pressed ||
+        self.is_run_pressed ||
+        self.is_up_pressed ||
+        self.is_down_pressed
+    }
+    
+    pub fn is_running(&self) -> bool {
+        self.is_run_pressed
     }
 
     pub fn process_events(&mut self, event: &WindowEvent, camera: &mut Camera) -> bool {
