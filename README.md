@@ -27,12 +27,14 @@ The world is now infinite and procedurally generated, consisting of grass, stone
 
 Light and the day/night cycle has now been introduced to the engine.
 
+I have now started to implement physics into the engine! It is quite lackcluster at the moment.
+
 ## Backlog
 
 - [ ] Procedurally generating structures and biomes.
 
 - [ ] Optimizations including level of detail and multithreading.
 
-- [ ] Developing the physics engine and animations. (fluid logic, etc.)
+- [ ] Improving the physics engine and adding animations. (fluid logic, etc.)
 
 - [ ] Designing a user interface for the soon-to-be-implemented players.
