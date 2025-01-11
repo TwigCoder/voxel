@@ -17,6 +17,10 @@ use glam::Vec3;
 use winit::{event::WindowEvent, platform::macos::MonitorHandleExtMacOS, window::Window};
 use std::collections::{HashMap, HashSet, VecDeque};
 
+const MOVEMENT_SPEED: f32 = 6.0;
+const AIR_CONTROL: f32 = 0.5;
+const JUMP_FORCE: f32 = 8.0;
+
 #[derive(Debug)]
 struct ChunkLoadRequest {
     pos: ChunkPos,
@@ -43,10 +47,6 @@ pub struct State {
     player_motion: Motion,
     player_collider: AABB,
 }
-
-const MOVEMENT_SPEED: f32 = 4.5;
-const AIR_CONTROL: f32 = 0.3;
-const JUMP_FORCE: f32 = 8.0;
 
 impl State {
     pub async fn new(window: &Window) -> Self {
@@ -198,13 +198,8 @@ impl State {
         let dt = 1.0 / 60.0;
         let mut movement = Vec3::ZERO;
         
-        self.physics_system.update(
-            &mut self.camera.position,
-            &mut self.player_motion,
-            &mut self.player_collider,
-            &self.chunks,
-            dt,
-        );
+        let forward = self.camera.get_view_direction() * Vec3::new(1.0, 0.0, 1.0);
+        let right = forward.cross(Vec3::Y).normalize();
         
         if self.camera_controller.is_moving() {
             let move_speed = if self.camera_controller.is_running() {
@@ -212,9 +207,6 @@ impl State {
             } else {
                 MOVEMENT_SPEED
             };
-            
-            let forward = self.camera.get_view_direction() * Vec3::new(1.0, 0.0, 1.0);
-            let right = forward.cross(Vec3::Y).normalize();
             
             if self.camera_controller.is_forward_pressed {
                 movement += forward;
@@ -267,6 +259,10 @@ impl State {
             &self.chunks,
             dt,
         );
+        
+        if self.player_motion.on_ground {
+            self.player_motion.jumping = false;
+        }
         
         self.camera_controller.update_camera(&mut self.camera);
         

@@ -4,8 +4,8 @@ use glam::Vec3;
 use std::collections::HashMap;
 
 const MAX_STEP_HEIGHT: f32 = 0.6;
-const JUMP_FORCE: f32 = 8.0;
-const MOVEMENT_SPEED: f32 = 4.5;
+const JUMP_FORCE: f32 = 24.0;
+const MOVEMENT_SPEED: f32 = 7.5;
 const AIR_CONTROL: f32 = 0.3;
 
 pub struct PhysicsSystem {
