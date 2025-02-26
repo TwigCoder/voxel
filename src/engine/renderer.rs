@@ -391,7 +391,6 @@ impl Renderer {
             })
         );
 
-
         let pipeline_layout = device.create_pipeline_layout(
             &wgpu::PipelineLayoutDescriptor {
                 label: Some("Render Pipeline Layout"),
