@@ -27,7 +27,7 @@ impl CameraUniform {
             camera_pos: [0.0; 4],
         }
     }
-    
+
     pub fn update_view_proj(&mut self, camera: &Camera) {
         self.view_proj = camera.build_view_projection_matrix().to_cols_array_2d();
         self.camera_pos = [camera.position.x, camera.position.y, camera.position.z, 1.0];
@@ -42,9 +42,9 @@ impl Camera {
             pitch: -35.0,
             up: Vec3::Y,
             aspect,
-            fovy: 45.0,
+            fovy: 70.0,
             znear: 0.1,
-            zfar: 100.0,
+            zfar: 200.0,
         }
     }
 
