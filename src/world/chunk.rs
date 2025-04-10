@@ -524,7 +524,6 @@ impl Chunk {
 
     pub fn generate_terrain(&mut self, world_pos: Vec3) {
         let perlin = Perlin::new(1234); // TODO: MAKE RANDOMIZED LATER
-        let scale = 0.01;
 
         let continent_scale = 0.002;
         let hills_scale = 0.02;

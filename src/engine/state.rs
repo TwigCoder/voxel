@@ -23,7 +23,6 @@ pub struct State {
     renderer: Renderer,
     chunks: Arc<Mutex<HashMap<ChunkPos, Chunk>>>,
     chunk_worker: ChunkWorkerPool,
-    render_distance: i32,
     last_chunk_pos: Option<ChunkPos>,
     time: f32,
     light: Light,
@@ -99,7 +98,6 @@ impl State {
             renderer,
             chunks,
             chunk_worker,
-            render_distance: 8,
             last_chunk_pos: None,
             time: 0.0,
             light: Light::new(

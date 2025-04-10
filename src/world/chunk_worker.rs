@@ -29,8 +29,6 @@ impl ChunkWorkerPool {
         }
     }
 
-    pub fn update_center(&self, _pos: ChunkPos) {}
-
     pub fn queue_chunk_generation(&self, pos: ChunkPos) {
         let mut processing = self.processing.lock();
         if processing.contains(&pos) || self.chunks.lock().contains_key(&pos) {
