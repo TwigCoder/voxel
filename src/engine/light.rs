@@ -1,4 +1,4 @@
-use glam::{Vec3, Vec4};
+use glam::Vec3;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -29,7 +29,7 @@ impl Light {
             attenuation: [1.0, 0.09, 0.032, 0.0],
             params: [1.0, 32.0, 0.0, 0.0],
         };
-        
+
         Self {
             position,
             color,
@@ -38,7 +38,7 @@ impl Light {
             uniform,
         }
     }
-    
+
     pub fn update(&mut self) {
         self.uniform.position = [self.position.x, self.position.y, self.position.z, 1.0];
         self.uniform.direction = [self.direction.x, self.direction.y, self.direction.z, 1.0];

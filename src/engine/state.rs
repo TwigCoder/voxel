@@ -4,7 +4,7 @@ use super::{
 };
 use crate::engine::light::Light;
 use crate::utils::frustum::Frustum;
-use crate::world::chunk::{Chunk, ChunkPos, CHUNK_SIZE};
+use crate::world::chunk::{Chunk, ChunkPos};
 use crate::world::chunk_worker::ChunkWorkerPool;
 use glam::Vec3;
 use parking_lot::Mutex;
