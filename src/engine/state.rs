@@ -5,6 +5,7 @@ use super::{
 use crate::engine::light::Light;
 use crate::utils::frustum::Frustum;
 use crate::world::chunk::{Chunk, ChunkPos};
+use crate::world::chunk_manager::ChunkManager;
 use crate::world::chunk_worker::ChunkWorkerPool;
 use glam::Vec3;
 use parking_lot::Mutex;
@@ -23,6 +24,8 @@ pub struct State {
     renderer: Renderer,
     chunks: Arc<Mutex<HashMap<ChunkPos, Chunk>>>,
     chunk_worker: ChunkWorkerPool,
+    chunk_manager: ChunkManager,
+    render_distance: i32,
     last_chunk_pos: Option<ChunkPos>,
     time: f32,
     light: Light,
@@ -78,7 +81,7 @@ impl State {
         surface.configure(&device, &config);
 
         let camera = Camera::new(
-            Vec3::new(8.0, 80.0, 8.0),
+            Vec3::new(8.0, 100.0, 8.0),
             size.width as f32 / size.height as f32,
         );
         let camera_controller = CameraController::new(0.5);
@@ -86,6 +89,7 @@ impl State {
 
         let chunks = Arc::new(Mutex::new(HashMap::new()));
         let chunk_worker = ChunkWorkerPool::new(Arc::clone(&chunks));
+        let chunk_manager = ChunkManager::new();
 
         let mut state = Self {
             surface,
@@ -98,6 +102,8 @@ impl State {
             renderer,
             chunks,
             chunk_worker,
+            chunk_manager,
+            render_distance: 8,
             last_chunk_pos: None,
             time: 0.0,
             light: Light::new(
@@ -128,6 +134,8 @@ impl State {
 
     pub fn update(&mut self) {
         self.camera_controller.update_camera(&mut self.camera);
+        self.chunk_manager
+            .update(self.camera.position, self.render_distance);
 
         let current_chunk_pos = ChunkPos::from_world_pos(self.camera.position);
         if self
