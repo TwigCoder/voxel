@@ -1,65 +1,68 @@
-use std::sync::Arc;
-use crossbeam::channel::{Sender, Receiver, unbounded};
-use parking_lot::Mutex;
-use rayon::prelude::*;
-use num_cpus;
-use std::collections::HashMap;
 use crate::world::chunk::{Chunk, ChunkPos};
+use parking_lot::Mutex;
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::Arc;
 
 pub enum ChunkTask {
     Generate(ChunkPos),
-    Mesh(ChunkPos),
 }
 
 pub struct ChunkWorkerPool {
-    task_sender: Sender<ChunkTask>,
-    task_receiver: Receiver<ChunkTask>,
+    tasks: Arc<Mutex<VecDeque<ChunkTask>>>,
     chunks: Arc<Mutex<HashMap<ChunkPos, Chunk>>>,
+    processing: Arc<Mutex<HashSet<ChunkPos>>>,
     thread_pool: rayon::ThreadPool,
 }
 
 impl ChunkWorkerPool {
     pub fn new(chunks: Arc<Mutex<HashMap<ChunkPos, Chunk>>>) -> Self {
-        let (task_sender, task_receiver) = unbounded();
         let thread_pool = rayon::ThreadPoolBuilder::new()
-            .num_threads(num_cpus::get() - 1)
+            .num_threads(4)
             .build()
             .unwrap();
-        
+
         Self {
-            task_sender,
-            task_receiver,
+            tasks: Arc::new(Mutex::new(VecDeque::new())),
             chunks,
+            processing: Arc::new(Mutex::new(HashSet::new())),
             thread_pool,
         }
     }
-    
+
+    pub fn update_center(&self, _pos: ChunkPos) {}
+
     pub fn queue_chunk_generation(&self, pos: ChunkPos) {
-        self.task_sender.send(ChunkTask::Generate(pos))
-            .expect("ERROR | chunk_worker | queue chunk generation");
+        let mut processing = self.processing.lock();
+        if processing.contains(&pos) || self.chunks.lock().contains_key(&pos) {
+            return;
+        }
+        processing.insert(pos);
+        self.tasks.lock().push_back(ChunkTask::Generate(pos));
     }
-    
-    pub fn queue_chunk_mesh(&self, pos: ChunkPos) {
-        self.task_sender.send(ChunkTask::Mesh(pos))
-            .expect("ERROR | chunk_worker | queue chunk mesh");
-    }
-    
+
     pub fn process_tasks(&self) {
-        while let Ok(task) = self.task_receiver.try_recv() {
+        let max_tasks = 4;
+        let mut tasks_to_process = Vec::new();
+
+        {
+            let mut task_queue = self.tasks.lock();
+            while tasks_to_process.len() < max_tasks && !task_queue.is_empty() {
+                if let Some(task) = task_queue.pop_front() {
+                    tasks_to_process.push(task);
+                }
+            }
+        }
+
+        for task in tasks_to_process {
             let chunks = Arc::clone(&self.chunks);
-            
-            self.thread_pool.spawn(move || {
-                match task {
-                    ChunkTask::Generate(pos) => {
-                        let mut chunk = Chunk::new(pos.to_world_pos());
-                        chunk.generate_terrain(pos.to_world_pos());
-                        chunks.lock().insert(pos, chunk);
-                    }
-                    ChunkTask::Mesh(pos) => {
-                        if let Some(chunk) = chunks.lock().get_mut(&pos) {
-                            chunk.generate_mesh();
-                        }
-                    }
+            let processing = Arc::clone(&self.processing);
+
+            self.thread_pool.spawn(move || match task {
+                ChunkTask::Generate(pos) => {
+                    let mut chunk = Chunk::new(pos.to_world_pos());
+                    chunk.generate_terrain(pos.to_world_pos());
+                    chunks.lock().insert(pos, chunk);
+                    processing.lock().remove(&pos);
                 }
             });
         }

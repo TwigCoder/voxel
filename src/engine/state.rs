@@ -2,21 +2,15 @@ use super::{
     camera::{Camera, CameraController},
     renderer::Renderer,
 };
-use crate::world::{
-    block::{BlockPos, BlockType},
-    chunk::{Chunk, ChunkPos, CHUNK_SIZE},
-};
 use crate::engine::light::Light;
 use crate::utils::frustum::Frustum;
+use crate::world::chunk::{Chunk, ChunkPos, CHUNK_SIZE};
+use crate::world::chunk_worker::ChunkWorkerPool;
 use glam::Vec3;
+use parking_lot::Mutex;
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use winit::{event::WindowEvent, window::Window};
-use std::collections::{HashMap, HashSet, VecDeque};
-
-#[derive(Debug)]
-struct ChunkLoadRequest {
-    pos: ChunkPos,
-    priority: f32,
-}
 
 pub struct State {
     surface: wgpu::Surface,
@@ -27,10 +21,9 @@ pub struct State {
     pub camera: Camera,
     camera_controller: CameraController,
     renderer: Renderer,
-    chunks: HashMap<ChunkPos, Chunk>,
-    chunk_load_queue: VecDeque<ChunkLoadRequest>,
+    chunks: Arc<Mutex<HashMap<ChunkPos, Chunk>>>,
+    chunk_worker: ChunkWorkerPool,
     render_distance: i32,
-    chunks_per_frame: usize,
     last_chunk_pos: Option<ChunkPos>,
     time: f32,
     light: Light,
@@ -39,8 +32,6 @@ pub struct State {
 impl State {
     pub async fn new(window: &Window) -> Self {
         let size = window.inner_size();
-        let time = 0.0;
-            
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             dx12_shader_compiler: Default::default(),
@@ -88,55 +79,14 @@ impl State {
         surface.configure(&device, &config);
 
         let camera = Camera::new(
-            Vec3::new(8.0, 100.0, 8.0),
+            Vec3::new(8.0, 80.0, 8.0),
             size.width as f32 / size.height as f32,
         );
         let camera_controller = CameraController::new(0.5);
-        let mut renderer = Renderer::new(&device, &config, &camera);
+        let renderer = Renderer::new(&device, &config, &camera);
 
-        let mut chunks = Vec::new();
-        
-        for x in -1..=1 {
-            for y in -1..=1 {
-                for z in -1..=1 {
-                    let position = Vec3::new(
-                        x as f32 * CHUNK_SIZE as f32,
-                        y as f32 * CHUNK_SIZE as f32,
-                        z as f32 * CHUNK_SIZE as f32
-                    );
-                    let mut chunk = Chunk::new(position);
-                
-                if y == -1 {
-                    for cx in 0..CHUNK_SIZE {
-                        for cz in 0..CHUNK_SIZE {
-                            chunk.set_block(cx, CHUNK_SIZE-1, cz, BlockType::Grass);
-                        }
-                    }
-                }
-                chunks.push(chunk);
-            }
-            }
-        }
-        
-        let mut renderer = Renderer::new(&device, &config, &camera);
-        
-        let mut initial_vertices = Vec::new();
-        for chunk in &chunks {
-            initial_vertices.extend(chunk.generate_mesh());
-        }
-        renderer.update_vertices(&device, &initial_vertices);
-        
-        let render_distance = 16;
-        let chunks = HashMap::new();
-        let chunk_load_queue = VecDeque::new();
-        let chunks_per_frame = 256;
-        let last_chunk_pos = None;
-        
-        let light = Light::new(
-            Vec3::new(0.0, 100.0, 0.0),
-            Vec3::new(1.0, 1.0, 1.0),
-            Vec3::new(-0.5, -1.0, -0.3),
-        );
+        let chunks = Arc::new(Mutex::new(HashMap::new()));
+        let chunk_worker = ChunkWorkerPool::new(Arc::clone(&chunks));
 
         let mut state = Self {
             surface,
@@ -148,14 +98,17 @@ impl State {
             camera_controller,
             renderer,
             chunks,
-            chunk_load_queue,
-            render_distance,
-            chunks_per_frame,
-            last_chunk_pos,
-            time,
-            light,
+            chunk_worker,
+            render_distance: 8,
+            last_chunk_pos: None,
+            time: 0.0,
+            light: Light::new(
+                Vec3::new(0.0, 100.0, 0.0),
+                Vec3::new(1.0, 1.0, 1.0),
+                Vec3::new(-0.5, -1.0, -0.3),
+            ),
         };
-        
+
         state.update_chunks();
         state
     }
@@ -177,22 +130,31 @@ impl State {
 
     pub fn update(&mut self) {
         self.camera_controller.update_camera(&mut self.camera);
-        
+
         let current_chunk_pos = ChunkPos::from_world_pos(self.camera.position);
-        if self.last_chunk_pos.map_or(true, |pos| pos != current_chunk_pos) {
+        if self
+            .last_chunk_pos
+            .map_or(true, |pos| pos != current_chunk_pos)
+        {
             self.last_chunk_pos = Some(current_chunk_pos);
             self.update_chunks();
+
+            for _ in 0..4 {
+                self.chunk_worker.process_tasks();
+            }
+        } else {
+            self.chunk_worker.process_tasks();
         }
-        
-        self.time += 0.01; // TODO: MAKE SLOWER AFTER TESTING
+
+        self.time += 0.01;
         let sun_angle = self.time % (2.0 * std::f32::consts::PI);
         let sun_height = sun_angle.sin();
         let sun_distance = sun_angle.cos();
-        
+
         self.light.direction = Vec3::new(sun_distance, -sun_height, 0.0).normalize();
-        let day_intensity = (sun_height + 1.0) * 0.5;
         self.light.update();
-        self.renderer.update_light_buffer(&self.queue, &self.light.uniform);
+        self.renderer
+            .update_light_buffer(&self.queue, &self.light.uniform);
     }
 
     pub fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -200,18 +162,19 @@ impl State {
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-
         let frustum = Frustum::from_matrix(self.camera.build_view_projection_matrix());
-        
-        let mut all_vertices = Vec::new();
-        for (pos, chunk) in &self.chunks {
+
+        let mut vertices = Vec::new();
+        let chunks_lock = self.chunks.lock();
+        for chunk in chunks_lock.values() {
             let (min, max) = chunk.get_bounds();
             if frustum.is_box_visible(min, max) {
-                all_vertices.extend(chunk.generate_mesh());
+                vertices.extend(chunk.generate_mesh());
             }
         }
-        
-        self.renderer.update_vertices(&self.device, &all_vertices);
+        drop(chunks_lock);
+
+        self.renderer.update_vertices(&self.device, &vertices);
         self.renderer
             .render(&view, &self.device, &self.queue, &self.camera)?;
         output.present();
@@ -219,65 +182,38 @@ impl State {
         Ok(())
     }
 
-    pub fn update_vertices(&mut self, vertices: &[super::renderer::Vertex]) {
-        self.renderer.update_vertices(&self.device, vertices);
-    }
-    
     pub fn update_chunks(&mut self) {
         let camera_chunk_pos = ChunkPos::from_world_pos(self.camera.position);
         let mut chunks_to_keep = HashSet::new();
-        let mut new_load_requests: Vec<ChunkLoadRequest> = Vec::new();
-        
-        for y in -self.render_distance/4..=self.render_distance/4 {
-            for x in -self.render_distance..=self.render_distance {
-                for z in -self.render_distance..=self.render_distance {
+
+        let horizontal_distance = 6;
+        let vertical_distance = 2;
+
+        for y in -vertical_distance..=vertical_distance {
+            for x in -horizontal_distance..=horizontal_distance {
+                for z in -horizontal_distance..=horizontal_distance {
                     let chunk_pos = ChunkPos::new(
                         camera_chunk_pos.x + x,
                         camera_chunk_pos.y + y,
                         camera_chunk_pos.z + z,
                     );
-                    
-                    let distance = ((x * x + y * y * 4 + z * z) as f32).sqrt();
-                    
-                    if distance <= self.render_distance as f32 {
+
+                    let distance_sq = x * x + y * y * 4 + z * z;
+                    if distance_sq <= horizontal_distance * horizontal_distance {
                         chunks_to_keep.insert(chunk_pos);
-                        
-                        if !self.chunks.contains_key(&chunk_pos) {
-                            new_load_requests.push(ChunkLoadRequest {
-                                pos: chunk_pos,
-                                priority: distance,
-                            })
+                        if !self.chunks.lock().contains_key(&chunk_pos) {
+                            self.chunk_worker.queue_chunk_generation(chunk_pos);
                         }
                     }
                 }
             }
         }
-        
-        new_load_requests.sort_by(|a, b|
-            a.priority.partial_cmp(&b.priority).unwrap()
-        );
-        new_load_requests.sort_by(|a, b| {
-            let a_dist = (a.pos.x - camera_chunk_pos.x).pow(2) + (a.pos.z - camera_chunk_pos.z).pow(2);
-            let b_dist = (b.pos.x - camera_chunk_pos.x).pow(2) + (b.pos.z - camera_chunk_pos.z).pow(2);
-            a_dist.cmp(&b_dist)
-        });
-        
-        self.chunk_load_queue.clear();
-        self.chunk_load_queue.extend(new_load_requests);
-        
-        for _ in 0..self.chunks_per_frame {
-            if let Some(request) = self.chunk_load_queue.pop_front() {
-                if !self.chunks.contains_key(&request.pos) {
-                    
-                    let mut chunk = Chunk::new(request.pos.to_world_pos());
-                    chunk.generate_terrain(request.pos.to_world_pos());
-                    
-                    self.chunks.insert(request.pos, chunk);
-                }
-            }
-        }
-        
-        self.chunks.retain(|pos, _|chunks_to_keep.contains(pos)); 
-    }   
-}
 
+        self.chunks.lock().retain(|pos, _| {
+            let dx = pos.x - camera_chunk_pos.x;
+            let dy = pos.y - camera_chunk_pos.y;
+            let dz = pos.z - camera_chunk_pos.z;
+            dx * dx + dy * dy * 4 + dz * dz <= (horizontal_distance + 2) * (horizontal_distance + 2)
+        });
+    }
+}
