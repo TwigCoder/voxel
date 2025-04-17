@@ -469,7 +469,14 @@ impl Renderer {
     }
 
     pub fn update_shadow_uniforms(&mut self, light_direction: Vec3) {
-        let light_projection = Mat4::orthographic_rh(-50.0, 50.0, -50.0, 50.0, -50.0, 50.0);
+        let light_projection = Mat4::orthographic_rh(
+            -50.0,
+            50.0,
+            -50.0,
+            50.0,
+            -50.0,
+            50.0
+        );
         let light_view = Mat4::look_to_rh(Vec3::ZERO, light_direction, Vec3::Y);
         self.shadow_uniforms.light_view_proj = (light_projection * light_view).to_cols_array_2d();
     }
